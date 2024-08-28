@@ -42,14 +42,15 @@
 2. [Identify Connections to Naked IP Addresses](#2-identify-connections-to-naked-ip-addresses) #
 3. [Analyze ICMP Traffic](#3-analyze-icmp-traffic) #
 4. [Monitor Unusual Port Activities](#4-monitor-unusual-port-activities) #
-5. [Look for MZ Header Bytes Traversing the Network](#5-look-for-mz-header-bytes-traversing-the-network) *
-6. [Look for Psexec Being Run on Host Machines](#6-look-for-psexec-being-ran-on-host-machines) *
-7. [Monitor System Utilities for Privilege Escalation](#7-monitor-system-utilities-for-privilege-escalation) *
-8. [Check Prefetch, Installed Programs, Persistence Keys, Cron Jobs, Scheduled Tasks, Services, User Profiles in Downloads](#8-check-prefetch-installed-programs-persistence-keys-cron-jobs-scheduled-tasks-services-user-profiles-in-downloads) *
-9. [Audit User Account Activities](#9-audit-user-account-activities) *
-10. [Document All Findings and Actions Taken](#10-document-all-findings-and-actions-taken) *
-11. [Create Host Interrogation/Survey Script](#11-create-host-interrogationsurvey-script) *
-12. [Monitor Same Net Communications](#12-monitor-same-net-communications) #
+5. [Monitor Same Net Communications](#12-monitor-same-net-communications) #
+6. [Look for MZ Header Bytes Traversing the Network](#5-look-for-mz-header-bytes-traversing-the-network) *
+7. [Look for Psexec Being Run on Host Machines](#6-look-for-psexec-being-ran-on-host-machines) *
+8. [Monitor System Utilities for Privilege Escalation](#7-monitor-system-utilities-for-privilege-escalation) *
+9. [Check Prefetch, Installed Programs, Persistence Keys, Cron Jobs, Scheduled Tasks, Services, User Profiles in Downloads](#8-check-prefetch-installed-programs-persistence-keys-cron-jobs-scheduled-tasks-services-user-profiles-in-downloads) *
+10. [Audit User Account Activities](#9-audit-user-account-activities) *
+11. [Document All Findings and Actions Taken](#10-document-all-findings-and-actions-taken) *
+12. [Create Host Interrogation/Survey Script](#11-create-host-interrogationsurvey-script) *
+
 
 ## 1. Gather All User Agent Strings
 ### Objective
@@ -91,21 +92,31 @@ Review network traffic logs to detect any connections to lesser-used ports, whic
 ### Highlight
 Any connections to ports not within the top 50~100 commonly used should be flagged and reviewed to ensure compliance with STIG standards.
 
-## 5. Look for MZ Header Bytes Traversing the Network
+## 5. Monitor Same Net Communications
+### Objective
+Detect internal network activities that may signify lateral movement, internal scanning, or other malicious insider activities.
+
+### Method
+Analyze network traffic to identify communications that occur solely within the same subnet. Focus on protocols typically used for file sharing, remote execution, or administrative tasks.
+
+### Highlight
+Flag extensive or unusual same-subnet traffic patterns, especially those using administrative or uncommon ports. This could include excessive SMB, SSH, or RDP traffic within a subnet.
+
+## 6. Look for MZ Header Bytes Traversing the Network
 ### Objective
 Identify potential malware files being transferred across the network.
 
 ### Method
 Monitor network traffic for files that start with the `MZ` header bytes.
 
-## 6. Look for Psexec Being Run on Host Machines
+## 7. Look for Psexec Being Run on Host Machines
 ### Objective
 Detect the use of PsExec, a legitimate Microsoft tool often used by attackers for lateral movement.
 
 ### Method
 Monitor system logs for execution traces of PsExec or similar remote execution tools.
 
-## 7. Monitor System Utilities for Privilege Escalation
+## 8. Monitor System Utilities for Privilege Escalation
 ### Objective
 Highlight execution of system utilities like `dsquery`, `ntdsutil`, `vssadmin`, `whoami` that could indicate attempts at privilege escalation.
 
@@ -115,14 +126,14 @@ Monitor prefetch and other system logs for execution of specified utilities, whi
 ### Highlight
 Any use of these utilities should be considered suspicious and investigated immediately, especially if executed by non-administrative users.
 
-## 8. Check Prefetch, Installed Programs, Persistence Keys, Cron Jobs, Scheduled Tasks, Services, User Profiles in Downloads
+## 9. Check Prefetch, Installed Programs, Persistence Keys, Cron Jobs, Scheduled Tasks, Services, User Profiles in Downloads
 ### Objective
 Identify and evaluate areas commonly used by malware to establish persistence or initiate activities post-compromise.
 
 ### Method
 Examine system areas like prefetch, installed programs, registry keys, scheduled tasks, and user profiles for anomalies.
 
-## 9. Audit User Account Activities
+## 10. Audit User Account Activities
 ### Objective
 Check for failed login attempts and last login times to audit user accounts and ensure only active and verified accounts are enabled.
 
@@ -132,14 +143,14 @@ Review security logs for failed login attempts and last login details. Verify th
 ### Highlight
 Any unusual login patterns or multiple failed login attempts should be immediately flagged for further investigation.
 
-## 10. Document All Findings and Actions Taken
+## 11. Document All Findings and Actions Taken
 ### Objective
 Ensure that all investigative steps and findings are thoroughly documented to facilitate follow-up actions and potential legal or disciplinary proceedings.
 
 ### Method
 Maintain detailed records of detected issues, actions taken, and recommendations for preventing similar issues in the future.
 
-## 11. Create Host Interrogation/Survey Script
+## 12. Create Host Interrogation/Survey Script
 ### Objective
 Develop a script to systematically interrogate host systems, gathering comprehensive data on system configuration, running processes, network connections, and security settings.
 
@@ -149,12 +160,3 @@ Design a script that runs a series of checks across multiple systems to collect 
 ### Highlight
 The script should be capable of identifying deviations from standard configurations, unusual network connections, and unauthorized changes to system settings.
 
-## 12. Monitor Same Net Communications
-### Objective
-Detect internal network activities that may signify lateral movement, internal scanning, or other malicious insider activities.
-
-### Method
-Analyze network traffic to identify communications that occur solely within the same subnet. Focus on protocols typically used for file sharing, remote execution, or administrative tasks.
-
-### Highlight
-Flag extensive or unusual same-subnet traffic patterns, especially those using administrative or uncommon ports. This could include excessive SMB, SSH, or RDP traffic within a subnet.
