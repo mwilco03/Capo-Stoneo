@@ -31,16 +31,25 @@
 | 29    | 2015-05-20T18:26:24.000Z                          | x509.not_before                       |
 
 
-
 # Cybersecurity Hunting Strategy Document
 
+## Task Categorization
+- **#** Network Analysis
+- **\*** Host Analysis
+
 ## Table of Contents
-1. [Gather All User Agent Strings](#1-gather-all-user-agent-strings)
-2. [Look for Base64 Encoded Data Inside of Web Requests](#2-look-for-base64-encoded-data-inside-of-web-requests)
-3. [Look for MZ Header Bytes Traversing the Network](#3-look-for-mz-header-bytes-traversing-the-network)
-4. [Look for Psexec Being Run on Host Machines](#4-look-for-psexec-being-ran-on-host-machines)
-5. [Check Prefetch, Installed Programs, Persistence Keys, Cron Jobs, Scheduled Tasks, Services, User Profiles in Downloads](#5-check-prefetch-installed-programs-persistence-keys-cron-jobs-scheduled-tasks-services-user-profiles-in-downloads)
-6. [Document All Findings and Actions Taken](#6-document-all-findings-and-actions-taken)
+1. [Gather All User Agent Strings](#1-gather-all-user-agent-strings) *
+2. [Identify Connections to Naked IP Addresses](#2-identify-connections-to-naked-ip-addresses) #
+3. [Analyze ICMP Traffic](#3-analyze-icmp-traffic) #
+4. [Monitor Unusual Port Activities](#4-monitor-unusual-port-activities) #
+5. [Look for MZ Header Bytes Traversing the Network](#5-look-for-mz-header-bytes-traversing-the-network) *
+6. [Look for Psexec Being Run on Host Machines](#6-look-for-psexec-being-ran-on-host-machines) *
+7. [Monitor System Utilities for Privilege Escalation](#7-monitor-system-utilities-for-privilege-escalation) *
+8. [Check Prefetch, Installed Programs, Persistence Keys, Cron Jobs, Scheduled Tasks, Services, User Profiles in Downloads](#8-check-prefetch-installed-programs-persistence-keys-cron-jobs-scheduled-tasks-services-user-profiles-in-downloads) *
+9. [Audit User Account Activities](#9-audit-user-account-activities) *
+10. [Document All Findings and Actions Taken](#10-document-all-findings-and-actions-taken) *
+11. [Create Host Interrogation/Survey Script](#11-create-host-interrogationsurvey-script) *
+12. [Monitor Same Net Communications](#12-monitor-same-net-communications) #
 
 ## 1. Gather All User Agent Strings
 ### Objective
@@ -52,79 +61,100 @@ Sort all collected user agent strings by their frequency of occurrence, prioriti
 ### Focus
 Pay special attention to user agents that indicate the use of tools like `curl`, `wget`, `PowerShell`, `Python`, `Nmap`, and `Microsoft Office`.
 
-### PowerShell Example
-```powershell
-# PowerShell script to extract and sort user agent strings from IIS logs
-Get-Content -Path "C:\\Logs\\iis.log" | Select-String -Pattern 'User-Agent: .*' | Group-Object -NoElement | Sort-Object Count -Ascending
-```
-
-## 2. Look for Base64 Encoded Data Inside of Web Requests
+## 2. Identify Connections to Naked IP Addresses
 ### Objective
-Detect potential exfiltration or command and control (C2) communications hidden in web traffic.
+Spot and investigate direct HTTP or HTTPS connections to bare IP addresses, especially those utilizing nonstandard ports, as they may indicate malicious activity or data exfiltration attempts.
 
 ### Method
-Inspect web request payloads for base64 encoded strings, decode them, and analyze the contents.
+Monitor and analyze network traffic for URLs formatted as `http://<IP>` or `https://<IP>`, with a particular focus on connections to ports that are not commonly used for web traffic (i.e., ports other than 80, 443).
 
-### PowerShell Example
-```powershell
-# PowerShell script to decode base64 strings from captured web request data
-$encodedString = "SGVsbG8gV29ybGQh"  # Example base64 encoded string
-$decodedBytes = [System.Convert]::FromBase64String($encodedString)
-$decodedString = [System.Text.Encoding]::ASCII.GetString($decodedBytes)
-Write-Output "Decoded string: $decodedString"
-```
+### Highlight
+Immediately flag any traffic to nonstandard ports as high priority for investigation.
 
-## 3. Look for MZ Header Bytes Traversing the Network
+## 3. Analyze ICMP Traffic
+### Objective
+Take note of observed ICMP traffic as it may lead to potential future attacks or scanning activity.
+
+### Method
+Monitor and analyze ICMP traffic patterns to detect potential network scanning or covert channel communications.
+
+### Highlight
+Unusual ICMP traffic volume or patterns should be documented and may warrant further investigation as indicators of reconnaissance or other malicious activities.
+
+## 4. Monitor Unusual Port Activities
+### Objective
+Identify network connections that utilize ports outside of the top 50~100 commonly used destination ports, aligning with STIG standards for secure configurations.
+
+### Method
+Review network traffic logs to detect any connections to lesser-used ports, which might indicate non-compliant or potentially harmful configurations or activities.
+
+### Highlight
+Any connections to ports not within the top 50~100 commonly used should be flagged and reviewed to ensure compliance with STIG standards.
+
+## 5. Look for MZ Header Bytes Traversing the Network
 ### Objective
 Identify potential malware files being transferred across the network.
 
 ### Method
 Monitor network traffic for files that start with the `MZ` header bytes.
 
-### PowerShell Example
-```powershell
-# PowerShell command to find files starting with MZ header
-Get-ChildItem -Path "C:\\NetworkShares\\" -Recurse | ForEach-Object {
-    $bytes = [System.IO.File]::ReadAllBytes($_.FullName)
-    $header = [System.Text.Encoding]::Default.GetString($bytes[0..1])
-    if ($header -eq "MZ") {
-        Write-Output "MZ Header found in file: $($_.FullName)"
-    }
-}
-```
-
-## 4. Look for Psexec Being Run on Host Machines
+## 6. Look for Psexec Being Run on Host Machines
 ### Objective
 Detect the use of PsExec, a legitimate Microsoft tool often used by attackers for lateral movement.
 
 ### Method
 Monitor system logs for execution traces of PsExec or similar remote execution tools.
 
-### PowerShell Example
-```powershell
-# PowerShell command to search event logs for PsExec usage
-Get-EventLog -LogName System | Where-Object { $_.Message -match "psexec" }
-```
+## 7. Monitor System Utilities for Privilege Escalation
+### Objective
+Highlight execution of system utilities like `dsquery`, `ntdsutil`, `vssadmin`, `whoami` that could indicate attempts at privilege escalation.
 
-## 5. Check Prefetch, Installed Programs, Persistence Keys, Cron Jobs, Scheduled Tasks, Services, User Profiles in Downloads
+### Method
+Monitor prefetch and other system logs for execution of specified utilities, which are often used in privilege escalation attacks.
+
+### Highlight
+Any use of these utilities should be considered suspicious and investigated immediately, especially if executed by non-administrative users.
+
+## 8. Check Prefetch, Installed Programs, Persistence Keys, Cron Jobs, Scheduled Tasks, Services, User Profiles in Downloads
 ### Objective
 Identify and evaluate areas commonly used by malware to establish persistence or initiate activities post-compromise.
 
 ### Method
 Examine system areas like prefetch, installed programs, registry keys, scheduled tasks, and user profiles for anomalies.
 
-### PowerShell Example
-```powershell
-# PowerShell script to list installed programs from the registry
-Get-ItemProperty HKLM:\\Software\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\* | Select-Object DisplayName, DisplayVersion, Publisher, InstallDate | Format-Table -AutoSize
-```
+## 9. Audit User Account Activities
+### Objective
+Check for failed login attempts and last login times to audit user accounts and ensure only active and verified accounts are enabled.
 
-## 6. Document All Findings and Actions Taken
+### Method
+Review security logs for failed login attempts and last login details. Verify the legitimacy of all user accounts and disable any that are unused or unaccounted for.
+
+### Highlight
+Any unusual login patterns or multiple failed login attempts should be immediately flagged for further investigation.
+
+## 10. Document All Findings and Actions Taken
 ### Objective
 Ensure that all investigative steps and findings are thoroughly documented to facilitate follow-up actions and potential legal or disciplinary proceedings.
 
 ### Method
 Maintain detailed records of detected issues, actions taken, and recommendations for preventing similar issues in the future.
 
-### Note
-Always use secure and authorized methods for documentation to ensure data integrity and confidentiality.
+## 11. Create Host Interrogation/Survey Script
+### Objective
+Develop a script to systematically interrogate host systems, gathering comprehensive data on system configuration, running processes, network connections, and security settings.
+
+### Method
+Design a script that runs a series of checks across multiple systems to collect essential diagnostics, facilitating rapid assessment of a system's security posture.
+
+### Highlight
+The script should be capable of identifying deviations from standard configurations, unusual network connections, and unauthorized changes to system settings.
+
+## 12. Monitor Same Net Communications
+### Objective
+Detect internal network activities that may signify lateral movement, internal scanning, or other malicious insider activities.
+
+### Method
+Analyze network traffic to identify communications that occur solely within the same subnet. Focus on protocols typically used for file sharing, remote execution, or administrative tasks.
+
+### Highlight
+Flag extensive or unusual same-subnet traffic patterns, especially those using administrative or uncommon ports. This could include excessive SMB, SSH, or RDP traffic within a subnet.
